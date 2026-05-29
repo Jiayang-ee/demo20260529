@@ -77,6 +77,14 @@ def _calculate_max_drawdown(asset_curve: List[DataPoint]) -> float:
     return round(max_drawdown, 4)
 
 
+def _deduplicate_by_date(points: List[DataPoint]) -> List[DataPoint]:
+    """按日期去重，保留每日期的最后一个值"""
+    seen = {}
+    for p in points:
+        seen[p.date] = p
+    return list(seen.values())
+
+
 def calculate_backtest(
     nav_records: List[FundNavRecord],
     amount: float,
@@ -118,6 +126,10 @@ def calculate_backtest(
             if record.date >= investment_date and record.date <= final_nav_date:
                 current_asset = total_shares * record.unit_nav
                 asset_curve.append(DataPoint(date=record.date, value=round(current_asset, 2)))
+
+    # 按日期排序并去重（保留每日期的最后一个值）
+    asset_curve.sort(key=lambda p: p.date)
+    asset_curve = _deduplicate_by_date(asset_curve)
 
     final_nav = nav_map[final_nav_date]
     final_asset = total_shares * final_nav.unit_nav
