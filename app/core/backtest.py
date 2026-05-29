@@ -119,6 +119,15 @@ def calculate_backtest(
                 current_asset = total_shares * record.unit_nav
                 asset_curve.append(DataPoint(date=record.date, value=round(current_asset, 2)))
 
+    # 去重并按日期升序排序（每期投入后全量遍历导致重复日期）
+    seen_dates = set()
+    asset_curve_dedup = []
+    for point in asset_curve:
+        if point.date not in seen_dates:
+            seen_dates.add(point.date)
+            asset_curve_dedup.append(point)
+    asset_curve = sorted(asset_curve_dedup, key=lambda p: p.date)
+
     final_nav = nav_map[final_nav_date]
     final_asset = total_shares * final_nav.unit_nav
     total_return = final_asset - total_invested
