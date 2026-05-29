@@ -1,7 +1,7 @@
 """核心计算单元测试"""
 import pytest
 from datetime import date
-from app.core.backtest import calculate_backtest, _calculate_max_drawdown, _find_nav_on_or_after
+from app.core.backtest import calculate_backtest, _find_nav_on_or_after
 from app.models.schemas import FundNavRecord
 
 
@@ -46,7 +46,7 @@ class TestNonTradingDayRollForward:
         # 第一期投在 1月2日（实际净值日）
         # 第二期应顺延到 1月5日（下一个有净值记录的日期）
         # 验证有且仅有两期投入
-        total_invested = result.metrics.total_invested
+        total_invested = result.dca_metrics.total_invested
         assert total_invested == 200.0
 
     def test_skip_investment_if_roll_forward_exceeds_end_date(self):
@@ -65,7 +65,7 @@ class TestNonTradingDayRollForward:
         )
 
         # 只应在 1月2日有一期投入
-        assert result.metrics.total_invested == 100.0
+        assert result.dca_metrics.total_invested == 100.0
 
 
 class TestMonthlyVsWeekly:
@@ -91,7 +91,7 @@ class TestMonthlyVsWeekly:
         )
 
         # 1月、2月、3月各一期
-        assert result.metrics.total_invested == 300.0
+        assert result.dca_metrics.total_invested == 300.0
 
     def test_weekly_investment_frequency(self):
         """周投：每周同一天定投"""
@@ -113,7 +113,7 @@ class TestMonthlyVsWeekly:
         )
 
         # 1月6日、1月13日、1月20日各一期
-        assert result.metrics.total_invested == 300.0
+        assert result.dca_metrics.total_invested == 300.0
 
 
 class TestLumpSumInvestment:
@@ -136,8 +136,8 @@ class TestLumpSumInvestment:
             end_date=date(2026, 3, 15),
         )
 
-        total_invested = result.metrics.total_invested
-        assert len(result.lump_sum_asset_curve) > 0
+        total_invested = result.dca_metrics.total_invested
+        assert len(result.lump_sum_curve) > 0
 
 
 class TestReturnRate:
@@ -160,7 +160,7 @@ class TestReturnRate:
             end_date=date(2026, 3, 15),
         )
 
-        assert result.metrics.return_rate > 0
+        assert result.dca_metrics.return_rate > 0
 
     def test_negative_return_rate(self):
         """净值下跌时收益率为负"""
@@ -179,7 +179,7 @@ class TestReturnRate:
             end_date=date(2026, 3, 15),
         )
 
-        assert result.metrics.return_rate < 0
+        assert result.dca_metrics.return_rate < 0
 
 
 class TestMaxDrawdown:
@@ -188,29 +188,27 @@ class TestMaxDrawdown:
     def test_max_drawdown_calculation(self):
         """最大回撤：最高点到最低点的跌幅"""
         asset_curve = [
-            {"date": date(2026, 1, 1), "value": 100.0},
-            {"date": date(2026, 1, 2), "value": 110.0},  # peak
-            {"date": date(2026, 1, 3), "value": 90.0},   # drawdown = (110-90)/110 ≈ 18.18%
-            {"date": date(2026, 1, 4), "value": 100.0},
+            {"date": "2026-01-01", "asset": 100.0},
+            {"date": "2026-01-02", "asset": 110.0},  # peak
+            {"date": "2026-01-03", "asset": 90.0},   # drawdown = (110-90)/110 ≈ 18.18%
+            {"date": "2026-01-04", "asset": 100.0},
         ]
 
-        from app.models.schemas import DataPoint
-        curve = [DataPoint(**p) for p in asset_curve]
-        max_dd = _calculate_max_drawdown(curve)
+        from app.core.backtest import _calculate_max_drawdown
+        max_dd = _calculate_max_drawdown(asset_curve)
 
         assert 0.18 < max_dd < 0.19
 
     def test_no_drawdown_when_always_rising(self):
         """净值一直上涨时最大回撤为0"""
         asset_curve = [
-            {"date": date(2026, 1, 1), "value": 100.0},
-            {"date": date(2026, 1, 2), "value": 110.0},
-            {"date": date(2026, 1, 3), "value": 120.0},
+            {"date": "2026-01-01", "asset": 100.0},
+            {"date": "2026-01-02", "asset": 110.0},
+            {"date": "2026-01-03", "asset": 120.0},
         ]
 
-        from app.models.schemas import DataPoint
-        curve = [DataPoint(**p) for p in asset_curve]
-        max_dd = _calculate_max_drawdown(curve)
+        from app.core.backtest import _calculate_max_drawdown
+        max_dd = _calculate_max_drawdown(asset_curve)
 
         assert max_dd == 0.0
 

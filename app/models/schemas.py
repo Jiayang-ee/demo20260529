@@ -12,9 +12,8 @@ class FundBase(BaseModel):
 
 class Fund(FundBase):
     """基金完整信息"""
-    fund_type: str = Field(..., description="基金类型")
-    nav_start_date: Optional[date] = Field(None, description="净值数据开始日期")
-    nav_end_date: Optional[date] = Field(None, description="净值数据结束日期")
+    min_date: Optional[str] = Field(None, description="净值数据开始日期")
+    max_date: Optional[str] = Field(None, description="净值数据结束日期")
     cached: bool = Field(False, description="是否已缓存本地数据")
 
 
@@ -60,8 +59,16 @@ class BacktestMetrics(BaseModel):
 
 class BacktestResult(BaseModel):
     """回测结果"""
-    metrics: BacktestMetrics
-    asset_curve: list[DataPoint] = Field(..., description="资产曲线")
-    lump_sum_asset_curve: list[DataPoint] = Field(..., description="一次性买入资产曲线")
-    fund_nav_curve: list[DataPoint] = Field(..., description="基金净值曲线")
-    return_rate_curve: list[DataPoint] = Field(..., description="收益率曲线")
+    dca_metrics: BacktestMetrics = Field(..., description="定投指标")
+    lump_sum_metrics: BacktestMetrics = Field(..., description="一次性买入指标")
+    dca_curve: list[dict] = Field(..., description="定投资产曲线")
+    lump_sum_curve: list[dict] = Field(..., description="一次性买入资产曲线")
+    nav_curve: list[dict] = Field(..., description="基金净值曲线")
+    return_curve: list[dict] = Field(..., description="收益率曲线")
+
+
+class BacktestResponse(BaseModel):
+    """API 响应包装"""
+    success: bool = True
+    data: Optional[BacktestResult] = None
+    error: Optional[str] = None
