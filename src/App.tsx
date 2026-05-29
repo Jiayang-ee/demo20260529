@@ -6,7 +6,7 @@ import ChartPanel from './components/ChartPanel';
 import ErrorState from './components/ErrorState';
 import EmptyState from './components/EmptyState';
 import type { Fund, BacktestResult } from './types';
-import { getMockFunds, getMockBacktestResult } from './api/mock';
+import { fetchFunds, submitBacktest } from './api/backtest';
 import './App.css';
 
 const { Header, Content } = Layout;
@@ -26,7 +26,7 @@ function App() {
     setLoading(true);
     setError(null);
     try {
-      const data = getMockFunds();
+      const data = await fetchFunds();
       setFunds(data);
     } catch (err) {
       setError('获取基金列表失败，请稍后重试');
@@ -45,7 +45,7 @@ function App() {
     setSubmitting(true);
     setError(null);
     try {
-      const response = getMockBacktestResult(values) as { success: boolean; data?: BacktestResult; error?: string };
+      const response = await submitBacktest(values);
       if (response.success && response.data) {
         setResult(response.data);
       } else {
