@@ -37,7 +37,11 @@ async def fetch_fund_nav(fund_code: str) -> list[FundNavRecord]:
     except json.JSONDecodeError:
         raise RuntimeError("解析 JSON 失败")
 
-    lsjz_list = data.get("Data", {}).get("LSJZList", [])
+    lsjz_list = data.get("Data") or {}
+    if isinstance(lsjz_list, dict):
+        lsjz_list = lsjz_list.get("LSJZList", [])
+    else:
+        lsjz_list = []
     if not lsjz_list:
         raise RuntimeError(f"基金 {fund_code} 无净值数据")
 

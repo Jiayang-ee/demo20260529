@@ -248,3 +248,26 @@ class TestFindNavOnOrAfter:
 
         result = _find_nav_on_or_after(nav_records, date(2026, 12, 31))
         assert result is None
+
+
+class TestAssetCurveNoDuplicates:
+    """asset_curve 重复日期去重测试"""
+
+    def test_asset_curve_no_duplicate_dates(self):
+        """asset_curve 中不应有重复日期"""
+        nav_records = _make_nav([
+            ("2026-01-02", 1.0),
+            ("2026-01-15", 1.1),
+            ("2026-02-02", 1.2),
+        ])
+
+        result = calculate_backtest(
+            nav_records=nav_records,
+            amount=100.0,
+            frequency="weekly",
+            start_date=date(2026, 1, 2),
+            end_date=date(2026, 2, 2),
+        )
+
+        dates = [p.date for p in result.asset_curve]
+        assert len(dates) == len(set(dates)), f"asset_curve 有重复日期: {dates}"

@@ -105,6 +105,7 @@ def calculate_backtest(
     total_invested = 0.0
     total_shares = 0.0
     asset_curve: List[DataPoint] = []
+    added_dates: set = set()
     lump_sum_shares = amount
     lump_sum_invested = amount
 
@@ -116,8 +117,10 @@ def calculate_backtest(
 
         for record in nav_records:
             if record.date >= investment_date and record.date <= final_nav_date:
-                current_asset = total_shares * record.unit_nav
-                asset_curve.append(DataPoint(date=record.date, value=round(current_asset, 2)))
+                if record.date not in added_dates:
+                    added_dates.add(record.date)
+                    current_asset = total_shares * record.unit_nav
+                    asset_curve.append(DataPoint(date=record.date, value=round(current_asset, 2)))
 
     final_nav = nav_map[final_nav_date]
     final_asset = total_shares * final_nav.unit_nav
