@@ -19,9 +19,8 @@ def list_funds():
         funds.append(Fund(
             code=code,
             name=item["name"],
-            fund_type=item["type"],
-            nav_start_date=nav_start,
-            nav_end_date=nav_end,
+            min_date=nav_start,
+            max_date=nav_end,
             cached=cached,
         ))
 
@@ -38,9 +37,8 @@ def get_fund(fund_code: str):
             return Fund(
                 code=fund_code,
                 name=item["name"],
-                fund_type=item["type"],
-                nav_start_date=nav_start,
-                nav_end_date=nav_end,
+                min_date=nav_start,
+                max_date=nav_end,
                 cached=cached,
             )
 
