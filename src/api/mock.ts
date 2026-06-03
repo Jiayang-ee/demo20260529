@@ -1,16 +1,16 @@
 import dayjs from 'dayjs';
 
 const MOCK_FUNDS = [
-  { code: '000001', name: '上证指数ETF', min_date: '2020-01-01', max_date: '2026-05-28' },
-  { code: '159919', name: '沪深300ETF', min_date: '2020-01-01', max_date: '2026-05-28' },
-  { code: '510050', name: '上证50ETF', min_date: '2020-01-01', max_date: '2026-05-28' },
-  { code: '159915', name: '创业板ETF', min_date: '2020-01-01', max_date: '2026-05-28' },
-  { code: '512880', name: '证券ETF', min_date: '2020-01-01', max_date: '2026-05-28' },
-  { code: '515000', name: '科技ETF', min_date: '2020-01-01', max_date: '2026-05-28' },
-  { code: '159941', name: '纳指ETF', min_date: '2020-01-01', max_date: '2026-05-28' },
-  { code: '513500', name: '标普500ETF', min_date: '2020-01-01', max_date: '2026-05-28' },
-  { code: '518880', name: '黄金ETF', min_date: '2020-01-01', max_date: '2026-05-28' },
-  { code: '000012', name: '国债ETF', min_date: '2020-01-01', max_date: '2026-05-28' },
+  { code: '000001', name: '华夏成长混合', min_date: '2020-01-01', max_date: '2026-05-28' },
+  { code: '000021', name: '华夏优势增长混合', min_date: '2020-01-01', max_date: '2026-05-28' },
+  { code: '000083', name: '汇添富消费行业混合', min_date: '2020-01-01', max_date: '2026-05-28' },
+  { code: '000263', name: '工银信息产业混合A', min_date: '2020-01-01', max_date: '2026-05-28' },
+  { code: '000336', name: '农银研究精选混合', min_date: '2020-01-01', max_date: '2026-05-28' },
+  { code: '000478', name: '建信中证500指数增强A', min_date: '2020-01-01', max_date: '2026-05-28' },
+  { code: '000596', name: '前海开源中证军工指数A', min_date: '2020-01-01', max_date: '2026-05-28' },
+  { code: '001054', name: '工银新金融股票A', min_date: '2020-01-01', max_date: '2026-05-28' },
+  { code: '001410', name: '信澳新能源产业股票', min_date: '2020-01-01', max_date: '2026-05-28' },
+  { code: '110011', name: '易方达中小盘混合', min_date: '2020-01-01', max_date: '2026-05-28' },
   { code: '012922', name: '易方达全球成长精选混合(QDII)C', min_date: '2020-01-01', max_date: '2026-05-28' },
 ];
 
