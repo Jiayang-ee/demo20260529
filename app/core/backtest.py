@@ -1,7 +1,7 @@
 """核心回测计算引擎"""
 from datetime import date, timedelta
 from typing import Optional, List
-from app.models.schemas import FundNavRecord, BacktestResult, BacktestMetrics, DataPoint
+from app.models.schemas import FundNavRecord, BacktestResult, BacktestMetrics
 
 
 def _find_nav_on_or_after(nav_records: List[FundNavRecord], target_date: date) -> Optional[FundNavRecord]:
@@ -59,7 +59,7 @@ def _generate_investment_dates(
     return investment_dates
 
 
-def _calculate_max_drawdown(asset_curve: List[DataPoint]) -> float:
+def _calculate_max_drawdown(asset_curve: List[dict]) -> float:
     """计算最大回撤"""
     if not asset_curve or len(asset_curve) < 2:
         return 0.0
@@ -68,9 +68,10 @@ def _calculate_max_drawdown(asset_curve: List[DataPoint]) -> float:
     max_drawdown = 0.0
 
     for point in asset_curve:
-        if point.value > peak:
-            peak = point.value
-        drawdown = (peak - point.value) / peak if peak > 0 else 0
+        value = point.get("value", point.get("asset", 0))
+        if value > peak:
+            peak = value
+        drawdown = (peak - value) / peak if peak > 0 else 0
         if drawdown > max_drawdown:
             max_drawdown = drawdown
 
@@ -104,7 +105,7 @@ def calculate_backtest(
 
     total_invested = 0.0
     total_shares = 0.0
-    asset_curve: List[DataPoint] = []
+    dca_curve: List[dict] = []
     lump_sum_shares = amount
     lump_sum_invested = amount
 
@@ -117,46 +118,28 @@ def calculate_backtest(
         for record in nav_records:
             if record.date >= investment_date and record.date <= final_nav_date:
                 current_asset = total_shares * record.unit_nav
-                asset_curve.append(DataPoint(date=record.date, value=round(current_asset, 2)))
+                dca_curve.append({
+                    "date": record.date.isoformat(),
+                    "asset": round(current_asset, 2),
+                    "nav": record.unit_nav,
+                })
 
     # 去重并按日期升序排序（每期投入后全量遍历导致重复日期）
     seen_dates = set()
-    asset_curve_dedup = []
-    for point in asset_curve:
-        if point.date not in seen_dates:
-            seen_dates.add(point.date)
-            asset_curve_dedup.append(point)
-    asset_curve = sorted(asset_curve_dedup, key=lambda p: p.date)
+    dca_curve_dedup = []
+    for point in dca_curve:
+        if point["date"] not in seen_dates:
+            seen_dates.add(point["date"])
+            dca_curve_dedup.append(point)
+    dca_curve = sorted(dca_curve_dedup, key=lambda p: p["date"])
 
     final_nav = nav_map[final_nav_date]
     final_asset = total_shares * final_nav.unit_nav
     total_return = final_asset - total_invested
     return_rate = total_return / total_invested if total_invested > 0 else 0
-    max_drawdown = _calculate_max_drawdown(asset_curve) if asset_curve else 0
+    max_drawdown = _calculate_max_drawdown(dca_curve) if dca_curve else 0
 
-    lump_sum_asset_curve: List[DataPoint] = []
-    lump_sum_final_asset = lump_sum_shares * final_nav.unit_nav
-    for record in nav_records:
-        if record.date >= first_invest_date and record.date <= final_nav_date:
-            asset = lump_sum_shares * record.unit_nav
-            lump_sum_asset_curve.append(DataPoint(date=record.date, value=round(asset, 2)))
-
-    lump_sum_return = lump_sum_final_asset - lump_sum_invested
-    lump_sum_return_rate = lump_sum_return / lump_sum_invested if lump_sum_invested > 0 else 0
-    lump_sum_max_drawdown = _calculate_max_drawdown(lump_sum_asset_curve) if lump_sum_asset_curve else 0
-
-    fund_nav_curve = [
-        DataPoint(date=r.date, value=r.unit_nav)
-        for r in nav_records
-        if first_invest_date <= r.date <= final_nav_date
-    ]
-
-    return_rate_curve = [
-        DataPoint(date=p.date, value=round((p.value - total_invested) / total_invested, 4))
-        for p in asset_curve
-    ]
-
-    metrics = BacktestMetrics(
+    dca_metrics = BacktestMetrics(
         total_invested=round(total_invested, 2),
         final_asset=round(final_asset, 2),
         total_return=round(total_return, 2),
@@ -164,10 +147,49 @@ def calculate_backtest(
         max_drawdown=max_drawdown,
     )
 
+    lump_sum_asset_curve: List[dict] = []
+    lump_sum_final_asset = lump_sum_shares * final_nav.unit_nav
+    for record in nav_records:
+        if record.date >= first_invest_date and record.date <= final_nav_date:
+            asset = lump_sum_shares * record.unit_nav
+            lump_sum_asset_curve.append({
+                "date": record.date.isoformat(),
+                "asset": round(asset, 2),
+                "nav": record.unit_nav,
+            })
+
+    lump_sum_return = lump_sum_final_asset - lump_sum_invested
+    lump_sum_return_rate = lump_sum_return / lump_sum_invested if lump_sum_invested > 0 else 0
+    lump_sum_max_drawdown = _calculate_max_drawdown(lump_sum_asset_curve) if lump_sum_asset_curve else 0
+
+    lump_sum_metrics = BacktestMetrics(
+        total_invested=round(lump_sum_invested, 2),
+        final_asset=round(lump_sum_final_asset, 2),
+        total_return=round(lump_sum_return, 2),
+        return_rate=round(lump_sum_return_rate, 4),
+        max_drawdown=lump_sum_max_drawdown,
+    )
+
+    nav_curve = [
+        {"date": r.date.isoformat(), "nav": r.unit_nav}
+        for r in nav_records
+        if first_invest_date <= r.date <= final_nav_date
+    ]
+
+    return_curve = [
+        {
+            "date": p["date"],
+            "dca_return": round((p["asset"] - total_invested) / total_invested, 4) if total_invested > 0 else 0,
+            "lump_sum_return": round((lump_sum_asset_curve[i]["asset"] - lump_sum_invested) / lump_sum_invested, 4) if lump_sum_invested > 0 else 0,
+        }
+        for i, p in enumerate(dca_curve)
+    ]
+
     return BacktestResult(
-        metrics=metrics,
-        asset_curve=asset_curve,
-        lump_sum_asset_curve=lump_sum_asset_curve,
-        fund_nav_curve=fund_nav_curve,
-        return_rate_curve=return_rate_curve,
+        dca_metrics=dca_metrics,
+        lump_sum_metrics=lump_sum_metrics,
+        dca_curve=dca_curve,
+        lump_sum_curve=lump_sum_asset_curve,
+        nav_curve=nav_curve,
+        return_curve=return_curve,
     )
